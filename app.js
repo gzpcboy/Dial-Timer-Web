@@ -1,4 +1,4 @@
-// Dial Timer — touch & mouse friendly
+// Dial Timer — touch & mouse friendly (improved: accessibility, storage, touch targets)
 (function(){
   const MAX_SECONDS = 60*60; // 60 minutes max
   const dialEl = document.getElementById('dial');
@@ -13,16 +13,21 @@
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS,'svg');
   svg.setAttribute('viewBox','0 0 200 200');
+  svg.setAttribute('role','img');
+  svg.setAttribute('aria-hidden','true');
+
   const bgCircle = document.createElementNS(svgNS,'circle');
   bgCircle.setAttribute('cx',100);bgCircle.setAttribute('cy',100);bgCircle.setAttribute('r',88);
   bgCircle.setAttribute('fill','none');bgCircle.setAttribute('stroke','rgba(255,255,255,0.06)');bgCircle.setAttribute('stroke-width',18);
   svg.appendChild(bgCircle);
+
   const arc = document.createElementNS(svgNS,'circle');
   arc.setAttribute('cx',100);arc.setAttribute('cy',100);arc.setAttribute('r',88);
   arc.setAttribute('fill','none');arc.setAttribute('stroke','url(#g)');arc.setAttribute('stroke-width',18);
   arc.setAttribute('stroke-linecap','round');
   arc.setAttribute('transform','rotate(-90 100 100)');
-  arc.setAttribute('stroke-dasharray','0 999');
+  arc.setAttribute('stroke-dasharray','0 552');
+  arc.style.transition = 'stroke-dasharray 220ms linear';
 
   // gradient defs
   const defs = document.createElementNS(svgNS,'defs');
@@ -33,10 +38,16 @@
   lin.appendChild(s1);lin.appendChild(s2);defs.appendChild(lin);svg.appendChild(defs);
   svg.appendChild(arc);
 
-  // knob indicator
-  const knob = document.createElementNS(svgNS,'circle');knob.setAttribute('cx',100);knob.setAttribute('cy',12);knob.setAttribute('r',6);knob.setAttribute('fill','#fff');knob.setAttribute('opacity','0.95');knob.setAttribute('class','knob');svg.appendChild(knob);
+  // knob indicator (bigger for touch)
+  const knob = document.createElementNS(svgNS,'circle');knob.setAttribute('cx',100);knob.setAttribute('cy',12);knob.setAttribute('r',10);knob.setAttribute('fill','#fff');knob.setAttribute('opacity','0.95');knob.setAttribute('class','knob');svg.appendChild(knob);
 
   dialEl.appendChild(svg);
+
+  // ARIA slider attributes
+  dialEl.setAttribute('role','slider');
+  dialEl.setAttribute('aria-valuemin','0');
+  dialEl.setAttribute('aria-valuemax',String(MAX_SECONDS));
+  dialEl.setAttribute('tabindex','0');
 
   let duration = 0; // seconds
   let remaining = 0;
@@ -50,30 +61,57 @@
     return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
   }
 
+  function saveState(){
+    try{
+      const st = {duration,remaining,running,ts:Date.now()};
+      localStorage.setItem('dial-timer-state', JSON.stringify(st));
+    }catch(e){/*ignore*/}
+  }
+  function loadState(){
+    try{
+      const raw = localStorage.getItem('dial-timer-state');
+      if(!raw) return;
+      const st = JSON.parse(raw);
+      if(typeof st.duration === 'number') duration = Math.min(MAX_SECONDS, Math.max(0, st.duration));
+      if(typeof st.remaining === 'number') remaining = Math.max(0, Math.min(duration, st.remaining));
+      if(typeof st.running === 'boolean') running = st.running;
+    }catch(e){/*ignore*/}
+  }
+
   function updateDisplay(){
     display.textContent = formatTime(remaining || duration);
-    const frac = (remaining ? (duration?((duration-remaining)/duration):0) : (duration?1:0));
-    const dash = Math.max(0, Math.min(1, frac)) * (2*Math.PI*88);
-    arc.setAttribute('stroke-dasharray', `${dash} ${2*Math.PI*88}`);
-    // rotate knob
+    const frac = (duration ? ((duration - (remaining || 0)) / duration) : 0);
+    const circumference = 2*Math.PI*88;
+    const dash = Math.max(0, Math.min(1, frac)) * circumference;
+    arc.setAttribute('stroke-dasharray', `${dash} ${circumference}`);
+    // rotate knob to the end of the arc
     const angle = (frac*360||0) - 90;
     const r = 88;
+    // compute knob position relative to viewbox (0..200)
     const cx = 100 + Math.cos((angle+90)*Math.PI/180) * (r);
     const cy = 100 + Math.sin((angle+90)*Math.PI/180) * (r);
     knob.setAttribute('cx', cx);
     knob.setAttribute('cy', cy);
+
+    // aria
+    dialEl.setAttribute('aria-valuenow', String(duration));
+    dialEl.setAttribute('aria-valuetext', formatTime(duration));
+
+    // buttons state
+    startBtn.disabled = running || duration <= 0;
+    pauseBtn.disabled = !running;
+
+    // visual running class
+    document.querySelector('.dial-card').classList.toggle('running', running);
   }
 
   function setDurationFromAngle(angle){
-    // angle in radians from center (0 = to the right); convert to fraction (0..1) with top as 0
-    // map full circle to MAX_SECONDS
-    // we want 0 at top. Convert: frac = ((angle + Math.PI/2) / (2*Math.PI)) mod 1
     const frac = ((angle + Math.PI/2) / (2*Math.PI));
     const norm = ((frac % 1) + 1) % 1; // 0..1
     duration = Math.round(norm * MAX_SECONDS);
-    // enforce minimum of 1 second
     if(duration < 1) duration = 1;
     remaining = 0;
+    saveState();
     updateDisplay();
   }
 
@@ -111,36 +149,38 @@
   svg.addEventListener('pointerdown', onPointerDown, {passive:false});
   svg.addEventListener('touchstart', function(e){e.preventDefault()}, {passive:false});
 
-  // keyboard support: left/right to +/- 1 minute, up/down +/- 5 seconds
+  // keyboard support
   dialEl.addEventListener('keydown', (e)=>{
-    if(e.key === 'ArrowRight') { duration = Math.min(MAX_SECONDS, duration + 60); updateDisplay(); }
-    if(e.key === 'ArrowLeft') { duration = Math.max(1, duration - 60); updateDisplay(); }
-    if(e.key === 'ArrowUp') { duration = Math.min(MAX_SECONDS, duration + 5); updateDisplay(); }
-    if(e.key === 'ArrowDown') { duration = Math.max(1, duration - 5); updateDisplay(); }
+    if(e.key === 'ArrowRight') { duration = Math.min(MAX_SECONDS, duration + 60); saveState(); updateDisplay(); }
+    if(e.key === 'ArrowLeft') { duration = Math.max(1, duration - 60); saveState(); updateDisplay(); }
+    if(e.key === 'ArrowUp') { duration = Math.min(MAX_SECONDS, duration + 5); saveState(); updateDisplay(); }
+    if(e.key === 'ArrowDown') { duration = Math.max(1, duration - 5); saveState(); updateDisplay(); }
   });
 
   // controls
-  startBtn.addEventListener('click', ()=>{
+  function startTimer(){
     if(running) return;
-    if(!duration) return; // nothing to run
+    if(!duration) return;
     if(remaining === 0) remaining = duration;
     running = true;
+    saveState();
     tickTimer = setInterval(()=>{
-      if(remaining <= 0){ clearInterval(tickTimer); running=false; remaining=0; updateDisplay(); beep(); return; }
-      remaining -= 1; updateDisplay();
+      if(remaining <= 0){ clearInterval(tickTimer); running=false; remaining=0; updateDisplay(); beep(); saveState(); return; }
+      remaining -= 1; updateDisplay(); saveState();
     },1000);
-  });
+  }
+  startBtn.addEventListener('click', startTimer);
   pauseBtn.addEventListener('click', ()=>{
     if(!running) return;
-    running=false;clearInterval(tickTimer);
+    running=false;clearInterval(tickTimer);saveState();updateDisplay();
   });
   resetBtn.addEventListener('click', ()=>{
-    running=false;clearInterval(tickTimer);remaining=0;updateDisplay();
+    running=false;clearInterval(tickTimer);remaining=0;duration=0;saveState();updateDisplay();
   });
   presets.forEach(btn=>btn.addEventListener('click', (e)=>{
     const text = e.target.textContent.trim();
     const minutes = parseInt(text.replace('m',''))||0;
-    duration = minutes*60; remaining=0; updateDisplay();
+    duration = Math.min(MAX_SECONDS, minutes*60); remaining=0; saveState(); updateDisplay();
   }));
 
   // beep using WebAudio
@@ -149,7 +189,7 @@
       const ctx = new (window.AudioContext||window.webkitAudioContext)();
       const o = ctx.createOscillator();
       const g = ctx.createGain();
-      o.type='sine';o.frequency.value=880;g.gain.value=0.001; // soft
+      o.type='sine';o.frequency.value=880;g.gain.value=0.001;
       o.connect(g);g.connect(ctx.destination);
       o.start();g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
@@ -163,6 +203,12 @@
     else document.documentElement.classList.remove('light');
   });
 
-  // initial display update
+  // save state on unload
+  window.addEventListener('beforeunload', saveState);
+
+  // load stored state
+  loadState();
   updateDisplay();
+
+  // if was running, do NOT auto-resume; just show saved remaining
 })();
