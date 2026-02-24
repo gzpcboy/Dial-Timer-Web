@@ -18,12 +18,12 @@
 
   const bgCircle = document.createElementNS(svgNS,'circle');
   bgCircle.setAttribute('cx',100);bgCircle.setAttribute('cy',100);bgCircle.setAttribute('r',88);
-  bgCircle.setAttribute('fill','none');bgCircle.setAttribute('stroke','rgba(255,255,255,0.06)');bgCircle.setAttribute('stroke-width',18);
+  bgCircle.setAttribute('fill','none');bgCircle.setAttribute('stroke','rgba(255,255,255,0.08)');bgCircle.setAttribute('stroke-width',22);
   svg.appendChild(bgCircle);
 
   const arc = document.createElementNS(svgNS,'circle');
   arc.setAttribute('cx',100);arc.setAttribute('cy',100);arc.setAttribute('r',88);
-  arc.setAttribute('fill','none');arc.setAttribute('stroke','url(#g)');arc.setAttribute('stroke-width',18);
+  arc.setAttribute('fill','none');arc.setAttribute('stroke','url(#g)');arc.setAttribute('stroke-width',22);
   arc.setAttribute('stroke-linecap','round');
   arc.setAttribute('transform','rotate(-90 100 100)');
   arc.setAttribute('stroke-dasharray','0 552');
@@ -39,7 +39,7 @@
   svg.appendChild(arc);
 
   // knob indicator (bigger for touch)
-  const knob = document.createElementNS(svgNS,'circle');knob.setAttribute('cx',100);knob.setAttribute('cy',12);knob.setAttribute('r',10);knob.setAttribute('fill','#fff');knob.setAttribute('opacity','0.95');knob.setAttribute('class','knob');svg.appendChild(knob);
+  const knob = document.createElementNS(svgNS,'circle');knob.setAttribute('cx',100);knob.setAttribute('cy',12);knob.setAttribute('r',14);knob.setAttribute('fill','#fff');knob.setAttribute('opacity','0.98');knob.setAttribute('class','knob');svg.appendChild(knob);
 
   dialEl.appendChild(svg);
 
