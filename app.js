@@ -1,4 +1,4 @@
-// Dial Timer — touch & mouse friendly (improved: accessibility, storage, touch targets)
+// Dial Timer — touch & mouse friendly (improved: accessibility, storage, touch targets, ticks)
 (function(){
   const MAX_SECONDS = 60*60; // 60 minutes max
   const dialEl = document.getElementById('dial');
@@ -35,11 +35,36 @@
   lin.setAttribute('id','g');lin.setAttribute('x1','0%');lin.setAttribute('x2','100%');
   const s1 = document.createElementNS(svgNS,'stop');s1.setAttribute('offset','0%');s1.setAttribute('stop-color','#6ee7b7');
   const s2 = document.createElementNS(svgNS,'stop');s2.setAttribute('offset','100%');s2.setAttribute('stop-color','#60a5fa');
-  lin.appendChild(s1);lin.appendChild(s2);defs.appendChild(lin);svg.appendChild(defs);
+  lin.appendChild(s1);lin.appendChild(s2);defs.appendChild(lin);
+  svg.appendChild(defs);
+
+  // minute ticks (under the arc)
+  const ticks = document.createElementNS(svgNS,'g');
+  ticks.setAttribute('class','ticks');
+  for(let i=0;i<60;i++){
+    const ang = (i/60)*2*Math.PI - Math.PI/2;
+    const outer = 88;
+    const inner = (i%5===0?72:78);
+    const x1 = 100 + Math.cos(ang)*inner;
+    const y1 = 100 + Math.sin(ang)*inner;
+    const x2 = 100 + Math.cos(ang)*outer;
+    const y2 = 100 + Math.sin(ang)*outer;
+    const ln = document.createElementNS(svgNS,'line');
+    ln.setAttribute('x1',String(x1)); ln.setAttribute('y1',String(y1)); ln.setAttribute('x2',String(x2)); ln.setAttribute('y2',String(y2));
+    ln.setAttribute('stroke', i%5===0 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)');
+    ln.setAttribute('stroke-width', i%5===0 ? '2' : '1');
+    ln.setAttribute('stroke-linecap','round');
+    ticks.appendChild(ln);
+  }
+  svg.appendChild(ticks);
+
   svg.appendChild(arc);
 
   // knob indicator (bigger for touch)
-  const knob = document.createElementNS(svgNS,'circle');knob.setAttribute('cx',100);knob.setAttribute('cy',12);knob.setAttribute('r',14);knob.setAttribute('fill','#fff');knob.setAttribute('opacity','0.98');knob.setAttribute('class','knob');svg.appendChild(knob);
+  const knob = document.createElementNS(svgNS,'circle');
+  knob.setAttribute('cx',100);knob.setAttribute('cy',12);knob.setAttribute('r',14);knob.setAttribute('fill','#fff');knob.setAttribute('opacity','0.98');knob.setAttribute('class','knob');
+  knob.setAttribute('stroke','#60a5fa');knob.setAttribute('stroke-width','3');
+  svg.appendChild(knob);
 
   dialEl.appendChild(svg);
 
