@@ -8,6 +8,9 @@
   const resetBtn = document.getElementById('resetBtn');
   const presets = document.querySelectorAll('.preset');
   const themeToggle = document.getElementById('themeToggle');
+  const decBtn = document.getElementById('decBtn');
+  const incBtn = document.getElementById('incBtn');
+  const editTimeBtn = document.getElementById('editTimeBtn');
 
   // create SVG inside dial
   const svgNS = 'http://www.w3.org/2000/svg';
@@ -78,6 +81,7 @@
   let remaining = 0;
   let running = false;
   let tickTimer = null;
+  let editing = false; // inline edit mode flag
 
   function formatTime(s){
     s = Math.max(0, Math.round(s));
@@ -104,7 +108,7 @@
   }
 
   function updateDisplay(){
-    display.textContent = formatTime(remaining || duration);
+    if(!editing){ display.textContent = formatTime(remaining || duration); }
     const frac = (duration ? ((duration - (remaining || 0)) / duration) : 0);
     const circumference = 2*Math.PI*88;
     const dash = Math.max(0, Math.min(1, frac)) * circumference;
@@ -248,10 +252,126 @@
     else { document.documentElement.classList.remove('light'); saveTheme(false); setThemeLabel(false); }
   });
 
+  // fine-adjust controls & editable time
+  let editing = false;
+  let editInput = null;
+
+  function parseTimeStr(s){
+    if(!s || typeof s !== 'string') return null;
+    s = s.trim();
+    const msec = s.split(':').map(p=>p.trim());
+    let minutes = 0, seconds = 0;
+    if(msec.length === 1){
+      // allow just minutes (e.g. "5"), or seconds if suffixed
+      if(s.endsWith('s')){
+        const n = parseInt(s.slice(0,-1),10);
+        if(isNaN(n)) return null; seconds = n;
+      }else{
+        const n = parseInt(s,10);
+        if(isNaN(n)) return null; minutes = n;
+      }
+    }else{
+      minutes = parseInt(msec[0],10);
+      seconds = parseInt(msec[1],10);
+      if(isNaN(minutes) || isNaN(seconds)) return null;
+    }
+    const total = Math.max(0, Math.min(MAX_SECONDS, minutes*60 + seconds));
+    return total;
+  }
+
+  function beginEditTime(){
+    if(editing) return;
+    editing = true;
+    const cur = formatTime(duration || 0);
+    editInput = document.createElement('input');
+    editInput.type = 'text';
+    editInput.className = 'time-input';
+    editInput.value = cur;
+    editInput.setAttribute('aria-label','Edit time (mm:ss)');
+    // replace display content
+    display.textContent = '';
+    display.appendChild(editInput);
+    editInput.focus();
+    editInput.select();
+
+    editInput.addEventListener('blur', finishEditTime);
+    editInput.addEventListener('keydown', function(ev){
+      if(ev.key === 'Enter') { ev.preventDefault(); finishEditTime(); }
+      if(ev.key === 'Escape') { ev.preventDefault(); cancelEditTime(); }
+    });
+  }
+  function finishEditTime(){
+    if(!editing || !editInput) return;
+    const val = editInput.value.trim();
+    const parsed = parseTimeStr(val);
+    if(parsed !== null){
+      duration = parsed;
+      remaining = 0;
+      saveState();
+      updateDisplay();
+    }else{
+      // invalid, revert
+      updateDisplay();
+    }
+    editing = false; editInput = null;
+  }
+  function cancelEditTime(){
+    editing = false; editInput = null; updateDisplay();
+  }
+
+  // adjust time (delta in seconds)
+  function adjustTime(delta){
+    if(running){
+      remaining = Math.max(0, Math.min(MAX_SECONDS, (remaining||0) + delta));
+    }else{
+      duration = Math.max(0, Math.min(MAX_SECONDS, (duration||0) + delta));
+      if(duration < 1) duration = 1;
+    }
+    saveState(); updateDisplay();
+  }
+
+  // wire buttons
+  if(decBtn) decBtn.addEventListener('click', ()=>adjustTime(-30));
+  if(incBtn) incBtn.addEventListener('click', ()=>adjustTime(30));
+  if(editTimeBtn) editTimeBtn.addEventListener('click', beginEditTime);
+  display.addEventListener('click', beginEditTime);
+  display.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); beginEditTime(); } });
+
+  // keyboard shortcuts (global)
+  document.addEventListener('keydown', (e)=>{
+    const active = document.activeElement || document.body;
+    if(active && (active.tagName === 'INPUT' || active.isContentEditable)) return; // avoid intercepting while typing
+    if(e.code === 'Space'){ e.preventDefault(); if(running) { pauseBtn.click(); } else { startBtn.click(); } }
+    if(e.key === '+' || e.key === '=') { e.preventDefault(); adjustTime(e.shiftKey ? 60 : 5); }
+    if(e.key === '-') { e.preventDefault(); adjustTime(e.shiftKey ? -60 : -5); }
+    if(e.key === 'p' && e.ctrlKey){ e.preventDefault(); startBtn.click(); }
+    // other arrows are handled on the dial element
+  });
+
   // save state on unload
   window.addEventListener('beforeunload', saveState);
 
   // load stored theme and state
+  function loadTheme(){
+    try{
+      const t = localStorage.getItem('dial-timer-theme');
+      if(t === 'light'){
+        document.documentElement.classList.add('light');
+        themeToggle.checked = true;
+        setThemeLabel(true);
+      }else if(t === 'dark'){
+        document.documentElement.classList.remove('light');
+        themeToggle.checked = false;
+        setThemeLabel(false);
+      }else{
+        // no explicit preference, respect OS level
+        const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        if(prefersLight){ document.documentElement.classList.add('light'); themeToggle.checked = true; setThemeLabel(true); }
+        else { document.documentElement.classList.remove('light'); themeToggle.checked = false; setThemeLabel(false); }
+      }
+    }catch(e){}
+  }
+
   loadTheme();
   loadState();
   updateDisplay();

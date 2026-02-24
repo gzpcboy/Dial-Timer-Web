@@ -16,9 +16,17 @@
 
     <section class="timer-wrap">
       <div class="dial-card">
-        <div id="dial" class="dial" aria-label="Dial timer control" role="slider" tabindex="0"></div>
-        <div class="time-display" id="timeDisplay" aria-live="polite">00:00</div>
+        <div id="dial" class="dial" aria-label="Dial timer control" role="slider" tabindex="0" aria-describedby="dialInstructions"></div>
+        <div class="time-display" id="timeDisplay" aria-live="polite" role="button" tabindex="0">00:00</div>
         <div class="hint" id="hint">Drag the dial or tap presets to set time</div>
+
+        <div class="adjusters">
+          <button id="decBtn" class="btn small" aria-label="Decrease time by 30 seconds">−30s</button>
+          <button id="editTimeBtn" class="btn small" aria-label="Edit time">Edit</button>
+          <button id="incBtn" class="btn small" aria-label="Increase time by 30 seconds">+30s</button>
+        </div>
+
+        <div id="dialInstructions" class="sr-only" aria-hidden="false">Drag or touch the circular dial to set time. Click the time display to edit exact minutes and seconds. Press Space to start/pause; use + or - keys to fine-adjust. Preset buttons set common intervals.</div>
       </div>
 
       <div class="controls">
