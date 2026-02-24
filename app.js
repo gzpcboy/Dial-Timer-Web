@@ -226,21 +226,26 @@
   function saveTheme(isLight){
     try{ localStorage.setItem('dial-timer-theme', isLight ? 'light' : 'dark'); }catch(e){}
   }
+  function setThemeLabel(isLight){
+    try{ const lbl = document.getElementById('themeLabel'); if(lbl) lbl.textContent = isLight ? 'Light' : 'Dark'; }catch(e){}
+  }
   function loadTheme(){
     try{
       const t = localStorage.getItem('dial-timer-theme');
       if(t === 'light'){
         document.documentElement.classList.add('light');
         themeToggle.checked = true;
+        setThemeLabel(true);
       }else{
         document.documentElement.classList.remove('light');
         themeToggle.checked = false;
+        setThemeLabel(false);
       }
     }catch(e){}
   }
   themeToggle.addEventListener('change',(e)=>{
-    if(e.target.checked) { document.documentElement.classList.add('light'); saveTheme(true); }
-    else { document.documentElement.classList.remove('light'); saveTheme(false); }
+    if(e.target.checked) { document.documentElement.classList.add('light'); saveTheme(true); setThemeLabel(true); }
+    else { document.documentElement.classList.remove('light'); saveTheme(false); setThemeLabel(false); }
   });
 
   // save state on unload
