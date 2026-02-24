@@ -18,23 +18,24 @@
       <div class="dial-card">
         <div id="dial" class="dial" aria-label="Dial timer control" role="slider" tabindex="0"></div>
         <div class="time-display" id="timeDisplay" aria-live="polite">00:00</div>
+        <div class="hint" id="hint">Drag the dial or tap presets to set time</div>
       </div>
 
       <div class="controls">
-        <button id="startBtn" class="btn primary">Start</button>
-        <button id="pauseBtn" class="btn">Pause</button>
-        <button id="resetBtn" class="btn">Reset</button>
+        <button id="startBtn" class="btn primary" aria-label="Start timer">Start</button>
+        <button id="pauseBtn" class="btn" aria-label="Pause timer">Pause</button>
+        <button id="resetBtn" class="btn" aria-label="Reset timer">Reset</button>
       </div>
 
-      <div class="presets">
-        <button class="preset btn">5m</button>
-        <button class="preset btn">10m</button>
-        <button class="preset btn">15m</button>
-        <button class="preset btn">25m</button>
+      <div class="presets" role="list">
+        <button class="preset btn" role="listitem">5m</button>
+        <button class="preset btn" role="listitem">10m</button>
+        <button class="preset btn" role="listitem">15m</button>
+        <button class="preset btn" role="listitem">25m</button>
       </div>
 
       <div class="settings">
-        <label class="switch"><input id="themeToggle" type="checkbox"><span>Dark</span></label>
+        <label class="switch"><input id="themeToggle" type="checkbox" aria-label="Toggle light theme"><span>Dark</span></label>
       </div>
     </section>
 

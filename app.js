@@ -197,16 +197,32 @@
     }catch(err){console.warn('audio failed',err)}
   }
 
-  // theme toggle
+  // theme persistence
+  function saveTheme(isLight){
+    try{ localStorage.setItem('dial-timer-theme', isLight ? 'light' : 'dark'); }catch(e){}
+  }
+  function loadTheme(){
+    try{
+      const t = localStorage.getItem('dial-timer-theme');
+      if(t === 'light'){
+        document.documentElement.classList.add('light');
+        themeToggle.checked = true;
+      }else{
+        document.documentElement.classList.remove('light');
+        themeToggle.checked = false;
+      }
+    }catch(e){}
+  }
   themeToggle.addEventListener('change',(e)=>{
-    if(e.target.checked) document.documentElement.classList.add('light');
-    else document.documentElement.classList.remove('light');
+    if(e.target.checked) { document.documentElement.classList.add('light'); saveTheme(true); }
+    else { document.documentElement.classList.remove('light'); saveTheme(false); }
   });
 
   // save state on unload
   window.addEventListener('beforeunload', saveState);
 
-  // load stored state
+  // load stored theme and state
+  loadTheme();
   loadState();
   updateDisplay();
 

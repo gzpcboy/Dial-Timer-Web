@@ -56,3 +56,7 @@ body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetic
 
 /* Running state */
 .dial-card.running{box-shadow: 0 12px 40px rgba(96,165,250,0.08), inset 0 0 60px rgba(96,165,250,0.02)}
+.dial-card.running::after{content:'';position:absolute;inset:6px;border-radius:16px;pointer-events:none;box-shadow:0 0 30px 6px rgba(96,165,250,0.05);opacity:0.0;animation:glow 2.6s infinite}
+@keyframes glow{0%{opacity:0.0;transform:scale(0.98)}50%{opacity:1}100%{opacity:0.0;transform:scale(1.02)}}
+
+.hint{margin-top:8px;color:var(--muted);font-size:0.9rem;text-align:center;}
