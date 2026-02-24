@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dial Timer — Touch & Mouse Friendly</title>
+  <meta name="description" content="A modern touch-friendly circular dial timer. Set time by dragging the dial, start/pause, reset. Backendless — hosted on GitHub Pages." />
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <header class="site-header">
+      <h1>Dial Timer</h1>
+      <p class="tag">Touch & mouse friendly circular dial timer • Backendless</p>
+    </header>
+
+    <section class="timer-wrap">
+      <div class="dial-card">
+        <div id="dial" class="dial" aria-label="Dial timer control" role="slider" tabindex="0"></div>
+        <div class="time-display" id="timeDisplay" aria-live="polite">00:00</div>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn" class="btn primary">Start</button>
+        <button id="pauseBtn" class="btn">Pause</button>
+        <button id="resetBtn" class="btn">Reset</button>
+      </div>
+
+      <div class="presets">
+        <button class="preset btn">5m</button>
+        <button class="preset btn">10m</button>
+        <button class="preset btn">15m</button>
+        <button class="preset btn">25m</button>
+      </div>
+
+      <div class="settings">
+        <label class="switch"><input id="themeToggle" type="checkbox"><span>Dark</span></label>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <small>Built with ❤️ — Dial-Timer-Web</small>
+    </footer>
+  </main>
+  <script src="app.js" defer></script>
+</body>
+</html>

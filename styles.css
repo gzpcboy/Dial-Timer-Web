@@ -1,0 +1,44 @@
+/* Modern circular dial timer — responsive, touch-friendly */
+:root{
+  --bg:#0f1724;
+  --card:#0b1220aa;
+  --glass: rgba(255,255,255,0.06);
+  --accent1: linear-gradient(135deg,#6ee7b7 0%,#60a5fa 100%);
+  --accent2: #60a5fa;
+  --muted:#9aa4b2;
+  --glass-border: rgba(255,255,255,0.06);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:radial-gradient(1200px 800px at 10% 10%, #071226 0%, #081022 20%, #03040b 100%);color:#e6eef6;display:flex;align-items:center;justify-content:center}
+.page{width:100%;max-width:760px;padding:24px}
+.site-header{display:flex;flex-direction:column;align-items:center;margin-bottom:18px}
+.site-header h1{margin:0;font-size:1.6rem;letter-spacing:0.4px}
+.tag{margin:6px 0 0;color:var(--muted);font-size:0.92rem}
+.timer-wrap{display:flex;flex-direction:column;gap:18px;align-items:center}
+.dial-card{width:320px;max-width:88vw;aspect-ratio:1/1;display:grid;place-items:center;border-radius:20px;padding:18px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));backdrop-filter: blur(8px);box-shadow: 0 8px 30px rgba(2,6,23,0.7);}
+.dial{width:100%;height:100%;border-radius:50%;position:relative;display:grid;place-items:center}
+.time-display{position:absolute;inset:0;margin:auto;z-index:4;font-weight:600;font-size:2.2rem;background:transparent;display:flex;align-items:center;justify-content:center}
+.controls{display:flex;gap:8px}
+.btn{padding:12px 18px;border-radius:12px;border:0;background:transparent;color:var(--accent2);cursor:pointer;font-weight:600}
+.btn.primary{background:linear-gradient(90deg,#34d399,#60a5fa);color:#041025}
+.btn:active{transform:translateY(1px)}
+.presets{display:flex;gap:8px}
+.preset{background:rgba(255,255,255,0.04);padding:10px 14px;border-radius:10px}
+.switch{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.switch input{width:1.2rem;height:1.2rem}
+.site-footer{text-align:center;color:var(--muted);margin-top:16px}
+
+/* SVG ring inside the dial (app draws into #dial) */
+.dial svg{width:100%;height:100%;display:block}
+
+/* small screens */
+@media (max-width:420px){.time-display{font-size:1.6rem}.dial-card{padding:12px;border-radius:16px}}
+
+/* Light theme override */
+:root.light{
+  --bg:#f7fbff;
+  --accent2:#0b6cff;
+  color:#0b1220
+}
+:root.light body{background:linear-gradient(180deg,#f7fbff,#e6f0ff)}
