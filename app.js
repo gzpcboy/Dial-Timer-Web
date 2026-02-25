@@ -42,6 +42,7 @@
   let remaining = 0;
   let running = false;
   let tickTimer = null;
+  let audioCtx = null; // created on first user gesture
 
   function formatTime(s){
     s = Math.max(0, Math.round(s));
@@ -50,9 +51,22 @@
     return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
   }
 
+  function updateStartState(){
+    const disabled = (duration === 0);
+    startBtn.disabled = disabled;
+    startBtn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  }
+
+  // ensure dial has ARIA atoms
+  dialEl.setAttribute('aria-valuemin','0');
+  dialEl.setAttribute('aria-valuemax', String(MAX_SECONDS));
+
   function updateDisplay(){
-    display.textContent = formatTime(remaining || duration);
-    const frac = (remaining ? (duration?((duration-remaining)/duration):0) : (duration?1:0));
+    // Show remaining while running/paused, otherwise show set duration
+    const valueToShow = (running || remaining > 0) ? remaining : duration;
+    display.textContent = formatTime(valueToShow);
+
+    const frac = (duration && (running || remaining > 0)) ? ((duration - valueToShow) / duration) : 0;
     const dash = Math.max(0, Math.min(1, frac)) * (2*Math.PI*88);
     arc.setAttribute('stroke-dasharray', `${dash} ${2*Math.PI*88}`);
     // rotate knob
@@ -62,6 +76,12 @@
     const cy = 100 + Math.sin((angle+90)*Math.PI/180) * (r);
     knob.setAttribute('cx', cx);
     knob.setAttribute('cy', cy);
+
+    // ARIA updates
+    dialEl.setAttribute('aria-valuenow', String(valueToShow));
+    dialEl.setAttribute('aria-valuetext', formatTime(valueToShow));
+
+    updateStartState();
   }
 
   function setDurationFromAngle(angle){
@@ -123,6 +143,8 @@
   startBtn.addEventListener('click', ()=>{
     if(running) return;
     if(!duration) return; // nothing to run
+    // ensure AudioContext created on user gesture to satisfy autoplay policies
+    try{ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){/*ignore*/}
     if(remaining === 0) remaining = duration;
     running = true;
     tickTimer = setInterval(()=>{
@@ -146,14 +168,14 @@
   // beep using WebAudio
   function beep(){
     try{
-      const ctx = new (window.AudioContext||window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
+      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
       o.type='sine';o.frequency.value=880;g.gain.value=0.001; // soft
-      o.connect(g);g.connect(ctx.destination);
-      o.start();g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6);
-      o.stop(ctx.currentTime + 0.65);
+      o.connect(g);g.connect(audioCtx.destination);
+      o.start();g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
+      o.stop(audioCtx.currentTime + 0.65);
     }catch(err){console.warn('audio failed',err)}
   }
 
