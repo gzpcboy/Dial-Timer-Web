@@ -6,6 +6,9 @@
   const startBtn = document.getElementById('startBtn');
   const pauseBtn = document.getElementById('pauseBtn');
   const resetBtn = document.getElementById('resetBtn');
+  const decBtn = document.getElementById('decBtn');
+  const incBtn = document.getElementById('incBtn');
+  const editTimeBtn = document.getElementById('editTimeBtn');
   const presets = document.querySelectorAll('.preset');
   const themeToggle = document.getElementById('themeToggle');
 
@@ -49,6 +52,102 @@
     const m = Math.floor(s/60);
     const sec = s%60;
     return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  }
+
+  function clamp(val, min, max){
+    return Math.min(max, Math.max(min, val));
+  }
+
+  function parseTimeInput(text){
+    if(!text) return null;
+    const raw = String(text).trim();
+    if(!raw) return null;
+    if(raw.includes(':')){
+      const parts = raw.split(':');
+      if(parts.length !== 2) return null;
+      const m = parseInt(parts[0], 10);
+      const s = parseInt(parts[1], 10);
+      if(Number.isNaN(m) || Number.isNaN(s)) return null;
+      return (m * 60) + s;
+    }
+    const m = parseFloat(raw);
+    if(Number.isNaN(m)) return null;
+    return Math.round(m * 60);
+  }
+
+  function stopTimer(){
+    running = false;
+    clearInterval(tickTimer);
+  }
+
+  function setExactDuration(seconds){
+    const next = clamp(seconds, 0, MAX_SECONDS);
+    duration = next;
+    remaining = 0;
+    stopTimer();
+    updateDisplay();
+  }
+
+  function openEditTime(){
+    const current = (running || remaining > 0) ? remaining : duration;
+    const input = prompt('Enter time (mm:ss or minutes)', formatTime(current));
+    if(input === null) return;
+    const seconds = parseTimeInput(input);
+    if(seconds === null){
+      alert('Invalid time. Use mm:ss or minutes.');
+      return;
+    }
+    setExactDuration(seconds);
+  }
+
+  function applyDelta(delta){
+    if(running || remaining > 0){
+      let nextRemaining = clamp(remaining + delta, 0, MAX_SECONDS);
+      let nextDuration = clamp(duration + delta, 0, MAX_SECONDS);
+      nextDuration = Math.max(nextDuration, nextRemaining);
+      remaining = nextRemaining;
+      duration = nextDuration;
+      if(running && remaining === 0){
+        stopTimer();
+      }
+      updateDisplay();
+      return;
+    }
+    duration = clamp(duration + delta, 0, MAX_SECONDS);
+    updateDisplay();
+  }
+
+  function startTimer(){
+    if(running) return;
+    if(!duration && remaining === 0) return;
+    // ensure AudioContext created on user gesture to satisfy autoplay policies
+    try{ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){/*ignore*/}
+    if(remaining === 0) remaining = duration;
+    if(remaining === 0) return;
+    running = true;
+    tickTimer = setInterval(()=>{
+      if(remaining <= 0){
+        stopTimer();
+        remaining = 0;
+        updateDisplay();
+        beep();
+        return;
+      }
+      remaining -= 1;
+      updateDisplay();
+    },1000);
+  }
+
+  function pauseTimer(){
+    if(!running) return;
+    stopTimer();
+    updateDisplay();
+  }
+
+  function resetTimer(){
+    stopTimer();
+    remaining = 0;
+    updateDisplay();
   }
 
   function updateStartState(){
@@ -133,31 +232,46 @@
 
   // keyboard support: left/right to +/- 1 minute, up/down +/- 5 seconds
   dialEl.addEventListener('keydown', (e)=>{
-    if(e.key === 'ArrowRight') { duration = Math.min(MAX_SECONDS, duration + 60); updateDisplay(); }
-    if(e.key === 'ArrowLeft') { duration = Math.max(1, duration - 60); updateDisplay(); }
-    if(e.key === 'ArrowUp') { duration = Math.min(MAX_SECONDS, duration + 5); updateDisplay(); }
-    if(e.key === 'ArrowDown') { duration = Math.max(1, duration - 5); updateDisplay(); }
+    if(e.key === 'ArrowRight') { applyDelta(60); }
+    if(e.key === 'ArrowLeft') { applyDelta(-60); }
+    if(e.key === 'ArrowUp') { applyDelta(5); }
+    if(e.key === 'ArrowDown') { applyDelta(-5); }
+    if(e.key === '+' || e.key === '=') { e.preventDefault(); applyDelta(5); }
+    if(e.key === '-' || e.key === '_') { e.preventDefault(); applyDelta(-5); }
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    const active = document.activeElement;
+    const isInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+    if(isInput) return;
+    if(e.code === 'Space' || e.key === ' '){
+      e.preventDefault();
+      if(running) pauseTimer();
+      else startTimer();
+    }
+    if(e.key === '+' || e.key === '='){
+      e.preventDefault();
+      applyDelta(5);
+    }
+    if(e.key === '-' || e.key === '_'){
+      e.preventDefault();
+      applyDelta(-5);
+    }
   });
 
   // controls
-  startBtn.addEventListener('click', ()=>{
-    if(running) return;
-    if(!duration) return; // nothing to run
-    // ensure AudioContext created on user gesture to satisfy autoplay policies
-    try{ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){/*ignore*/}
-    if(remaining === 0) remaining = duration;
-    running = true;
-    tickTimer = setInterval(()=>{
-      if(remaining <= 0){ clearInterval(tickTimer); running=false; remaining=0; updateDisplay(); beep(); return; }
-      remaining -= 1; updateDisplay();
-    },1000);
-  });
-  pauseBtn.addEventListener('click', ()=>{
-    if(!running) return;
-    running=false;clearInterval(tickTimer);
-  });
-  resetBtn.addEventListener('click', ()=>{
-    running=false;clearInterval(tickTimer);remaining=0;updateDisplay();
+  startBtn.addEventListener('click', startTimer);
+  pauseBtn.addEventListener('click', pauseTimer);
+  resetBtn.addEventListener('click', resetTimer);
+  decBtn.addEventListener('click', ()=>applyDelta(-30));
+  incBtn.addEventListener('click', ()=>applyDelta(30));
+  editTimeBtn.addEventListener('click', openEditTime);
+  display.addEventListener('click', openEditTime);
+  display.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      openEditTime();
+    }
   });
   presets.forEach(btn=>btn.addEventListener('click', (e)=>{
     const text = e.target.textContent.trim();
